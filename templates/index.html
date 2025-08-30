@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Chatbot - AI Document Assistant</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  
+  <!-- ✅ MathJax for rendering LaTeX -->
+  <script type="text/javascript" id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  </script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+
+    .main-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 2.5rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      margin-bottom: 2rem;
+    }
+
+    .upload-section {
+      margin-bottom: 2rem;
+    }
+
+    .upload-area {
+      border: 3px dashed #d1d5db;
+      border-radius: 16px;
+      padding: 3rem;
+      text-align: center;
+      background: #fafafa;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area:hover {
+      border-color: #667eea;
+      background: #f8faff;
+      transform: translateY(-2px);
+    }
+
+    .upload-area.dragover {
+      border-color: #667eea;
+      background: #f0f4ff;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 4rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+      transition: transform 0.3s ease;
+    }
+
+    .upload-area:hover .upload-icon {
+      transform: scale(1.1);
+    }
+
+    .upload-text {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-subtext {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .file-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .question-section {
+      margin-top: 2rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+
+    .question-section.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .input-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 1.2rem 1rem 1.2rem 3rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6b7280;
+      font-size: 1.1rem;
+    }
+
+    .answer-card {
+      background: linear-gradient(135deg, #f0fff4 0%, #ecfdf5 100%);
+      border: 1px solid #d1fae5;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-top: 2rem;
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
+      animation: slideUp 0.5s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .answer-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      color: #059669;
+    }
+
+    .answer-header i {
+      font-size: 1.5rem;
+      margin-right: 0.75rem;
+    }
+
+    .answer-header h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .answer-content {
+      color: #047857;
+      font-size: 1rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      background: #dcfce7;
+      color: #166534;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    .status-indicator i {
+      margin-right: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .loading {
+      display: inline-flex;
+      align-items: center;
+      color: #667eea;
+      font-weight: 500;
+    }
+
+    .loading i {
+      margin-right: 0.5rem;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .form {
+      display: flex;
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .form .input-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+
+      .main-card {
+        padding: 1.5rem;
+      }
+
+      .upload-area {
+        padding: 2rem 1rem;
+      }
+
+      .upload-icon {
+        font-size: 3rem;
+      }
+
+      .form {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+
+    .particle {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+  </style>
+
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i class="fas fa-robot"></i> PDF Assistant</h1>
+      <p>Upload your document and start chatting with AI</p>
+    </div>
+
+    <div class="main-card">
+      <div class="upload-section">
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+          <div class="upload-area" id="uploadArea">
+            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <div class="upload-text">Drop your PDF here or click to browse</div>
+            <div class="upload-subtext">Support for PDF files up to 10MB</div>
+            <input type="file" name="pdf_file" accept="application/pdf" class="file-input" id="fileInput">
+          </div>
+          <br>
+          <button type="submit" class="btn" id="processBtn">
+            <i class="fas fa-magic"></i> Process Document
+          </button>
+        </form>
+      </div>
+
+      {% if pdf_uploaded %}
+        <div class="status-indicator">
+          <i class="fas fa-check-circle"></i>
+          PDF processed successfully! You can now ask questions.
+        </div>
+
+        <div class="question-section show">
+          <form method="post" class="form" id="questionForm">
+            <div class="input-group">
+              <i class="fas fa-question-circle input-icon"></i>
+              <input type="text" name="question" class="input-field" placeholder="Ask anything about your document..." required id="questionInput">
+            </div>
+            <button type="submit" class="btn" id="askBtn">
+              <i class="fas fa-paper-plane"></i> Ask
+            </button>
+          </form>
+        </div>
+      {% endif %}
+
+      {% if answer %}
+        <div class="answer-card">
+          <div class="answer-header">
+            <i class="fas fa-brain"></i>
+            <h3>AI Response</h3>
+          </div>
+          <!-- ✅ Enable raw HTML output for MathJax -->
+          <div class="answer-content">{{ answer | safe }}</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    // File upload interactions
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const processBtn = document.getElementById('processBtn');
+    const questionForm = document.getElementById('questionForm');
+    const askBtn = document.getElementById('askBtn');
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type === 'application/pdf') {
+        fileInput.files = files;
+        updateUploadArea(files[0]);
+      }
+    });
+
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        updateUploadArea(e.target.files[0]);
+      }
+    });
+
+    function updateUploadArea(file) {
+      const uploadText = uploadArea.querySelector('.upload-text');
+      const uploadIcon = uploadArea.querySelector('.upload-icon i');
+      
+      uploadText.textContent = `Selected: ${file.name}`;
+      uploadIcon.className = 'fas fa-file-pdf';
+      uploadArea.style.borderColor = '#059669';
+      uploadArea.style.background = '#f0fdf4';
+    }
+
+    // Form submissions with loading states
+    document.getElementById('uploadForm').addEventListener('submit', () => {
+      processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      processBtn.disabled = true;
+    });
+
+    if (questionForm) {
+      questionForm.addEventListener('submit', () => {
+        askBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thinking...';
+        askBtn.disabled = true;
+      });
+    }
+
+    // Add floating particles animation
+    function createParticle() {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.top = Math.random() * 100 + '%';
+      particle.style.width = particle.style.height = Math.random() * 10 + 5 + 'px';
+      particle.style.animationDelay = Math.random() * 6 + 's';
+      particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+      
+      document.body.appendChild(particle);
+      
+      setTimeout(() => {
+        particle.remove();
+      }, 6000);
+    }
+
+    // Create particles periodically
+    setInterval(createParticle, 2000);
+
+    // Auto-focus on question input if available
+    const questionInput = document.getElementById('questionInput');
+    if (questionInput) {
+      questionInput.focus();
+    }
+  </script>
+</body>
+</html>
